@@ -1,5 +1,6 @@
 const express = require('express');
 const app = new express();
+
 /*This tells the server to use the client 
 folder for all static resources*/
 app.use(express.static('client'));
@@ -17,39 +18,18 @@ dotenv.config();
 const api_key = process.env.API_KEY;
 const api_url = process.env.API_URL;
 
-
 function getNLUInstance() {
-    /*Type the code to create the NLU instance and return it.
-    You can refer to the image in the instructions document
-    to do the same.*/
     const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1');
     const { IamAuthenticator } = require('ibm-watson/auth');
 
     const naturalLanguageUnderstanding = new NaturalLanguageUnderstandingV1({
-        version: '2022-04-07',
+        version: '2021-08-01',
         authenticator: new IamAuthenticator({
-            apikey: api_key,
+            apikey: api_key
         }),
-        serviceUrl: api_url,
+        serviceUrl: api_url
     });
-
-    const analyzeParams = {
-        'url': 'www.ibm.com',
-        'features': {
-            'categories': {
-                'limit': 3
-            }
-        }
-    };
-
-    naturalLanguageUnderstanding.analyze(analyzeParams)
-        .then(analysisResults => {
-            console.log(JSON.stringify(analysisResults, null, 2));
-        })
-        .catch(err => {
-            console.log('error:', err);
-        });
-
+    return naturalLanguageUnderstanding;
 }
 
 
@@ -60,81 +40,56 @@ app.get("/", (req, res) => {
 
 //The endpoint for the webserver ending with /url/emotion
 app.get("/url/emotion", (req, res) => {
+    let urlToAnalyze = req.query.url
+    const analyzeParams =
+    {
+        "url": urlToAnalyze,
+        "features": {
+            "keywords": {
+                "emotion": true,
+                "limit": 1
+            }
+        }
+    }
 
-    const analyzeParams = { 'url': req.query.url, 'features': { 'entities': { 'emotion': true, 'limit': 1 }, 'keywords': { 'emotion': true, 'limit': 1 } } };
+    const naturalLanguageUnderstanding = getNLUInstance();
 
-    const NLUinstance = getNLUInstance();
-
-    NLUinstance.analyze(analyzeParams).then(analysisResults => {
-
-        return res.send(analysisResults.result.keywords[0].emotion, null, 2);
-    }).catch(err => { return res.send("Could not do the desired operation " + err); });
-
-
+    naturalLanguageUnderstanding.analyze(analyzeParams)
+        .then(analysisResults => {
+            //Retrieve the emotion and return it as a formatted string
+            return res.send(analysisResults.result.keywords[0].emotion, null, 2);
+        })
+        .catch(err => {
+            return res.send("Could not do desired operation " + err);
+        });
 });
-// app.get("/url/emotion", (req, res) => {
-//     let urlToAnalyze = req.query.url
-//     const analyzeParams =
-//     {
-//         "url": urlToAnalyze,
-//         "features": {
-//             "keywords": {
-//                 "emotion": true,
-//                 "limit": 1
-//             }
-//         }
-//     }
-
-//     const naturalLanguageUnderstanding = getNLUInstance();
-
-//     naturalLanguageUnderstanding.analyze(analyzeParams)
-//         .then(analysisResults => {
-//             //Retrieve the emotion and return it as a formatted string
-//             return res.send(analysisResults.result.keywords[0].emotion, null, 2);
-//         })
-//         .catch(err => {
-//             return res.send("Could not do desired operation " + err);
-//         });
-// });
 
 //The endpoint for the webserver ending with /url/sentiment
 app.get("/url/sentiment", (req, res) => {
+    let urlToAnalyze = req.query.url
+    const analyzeParams =
+    {
+        "url": urlToAnalyze,
+        "features": {
+            "keywords": {
+                "sentiment": true,
+                "limit": 1
+            }
+        }
+    }
 
-    const analyzeParams = { 'url': req.query.url, 'features': { 'entities': { 'sentiment': true, 'limit': 1 }, 'keywords': { 'sentiment': true, 'limit': 1 } } };
+    const naturalLanguageUnderstanding = getNLUInstance();
 
-    const NLUinstance = getNLUInstance();
+    naturalLanguageUnderstanding.analyze(analyzeParams)
+        .then(analysisResults => {
+            //Retrieve the sentiment and return it as a formatted string
 
-    NLUinstance.analyze(analyzeParams).then(analysisResults => {
-        return res.send(analysisResults.result.keywords[0].sentiment, null, 2);
-    }).catch(err => { return res.send("Could not do the desired operation " + err); });
-
+            return res.send(analysisResults.result.keywords[0].sentiment, null, 2);
+        })
+        .catch(err => {
+            return res.send("Could not do desired operation " + err);
+        });
 });
-// app.get("/url/sentiment", (req, res) => {
-//     let urlToAnalyze = req.query.url
-//     const analyzeParams =
-//     {
-//         "url": urlToAnalyze,
-//         "features": {
-//             "keywords": {
-//                 "sentiment": true,
-//                 "limit": 1
-//             }
-//         }
-//     }
-
-//     const naturalLanguageUnderstanding = getNLUInstance();
-
-//     naturalLanguageUnderstanding.analyze(analyzeParams)
-//         .then(analysisResults => {
-//             //Retrieve the sentiment and return it as a formatted string
-
-//             return res.send(analysisResults.result.keywords[0].sentiment, null, 2);
-//         })
-//         .catch(err => {
-//             return res.send("Could not do desired operation " + err);
-//         });
-// });
-
 //The endpoint for the webserver ending with /text/emotion
 app.get("/text/emotion", (req, res) => {
     let textToAnalyze = req.query.text
@@ -162,7 +117,6 @@ app.get("/text/emotion", (req, res) => {
         });
 });
 
-//The endpoint for the webserver ending with /text/sentiment
 app.get("/text/sentiment", (req, res) => {
     let textToAnalyze = req.query.text
     const analyzeParams =
@@ -189,7 +143,6 @@ app.get("/text/sentiment", (req, res) => {
         });
 });
 
-// Listen to server 8080
 let server = app.listen(8080, () => {
     console.log('Listening', server.address().port)
 })
